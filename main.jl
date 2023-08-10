@@ -6,6 +6,10 @@ using StatsPlots
 
 using LinearAlgebra
 
+include(joinpath("CA_data", "california.jl"))
+
+
+
 #PI_M = variable
 PI_B = 1000
 PI_H = 30
@@ -71,11 +75,16 @@ function wnv(du, u, p, t)
 end
 
 #Define initial-value problem
-u0 = [1000.0, 0.0, 1000.0, 0.0, 1000.0, 0.0, 0.0, 0.0, 0.0]
-p = [1000, 1000, 0.5, 0.5]
-tspan = (0.0, 365.0)
+u0 = [50000.0, 1000.0, 10000.0, 1000.0, 100000.0, 0, 0, 0, 0]
+p = [50, 50, 0.5, 0.5]
+tspan = (0.0, 12.0)
 prob = ODEProblem(wnv, u0, tspan, p)
 
 #Plot simulation
 sol = solve(prob, Tsit5(), saveat=1)
-plot(sol[1,:], label="Uninfected Mosquitoes")
+#plot(sol)
+
+plot(sol[7,:], label="Symptomatically Infected Humans")
+
+odedata = California.load()[1:12, :]
+plot!(odedata[!, :count], label="Observed Symptomatically Infected Humans")
