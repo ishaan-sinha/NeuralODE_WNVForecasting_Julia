@@ -66,4 +66,16 @@ function wnv(du, u, p, t)
     du[7] = ALPHA*E - MU_H*I - DELTA*I#symptomatically infected humans
     du[8] = DELTA*I - TAU*H - MU_H*H - d_H*H #hospitalized humans
     du[9] = TAU*H - MU_H*R #recovered humans
-    
+
+    return nothing
+end
+
+#Define initial-value problem
+u0 = [1000.0, 0.0, 1000.0, 0.0, 1000.0, 0.0, 0.0, 0.0, 0.0]
+p = [1000, 1000, 0.5, 0.5]
+tspan = (0.0, 365.0)
+prob = ODEProblem(wnv, u0, tspan, p)
+
+#Plot simulation
+sol = solve(prob, Tsit5(), saveat=1)
+plot(sol[1,:], label="Uninfected Mosquitoes")
