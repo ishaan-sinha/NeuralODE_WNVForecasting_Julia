@@ -34,10 +34,36 @@ B_i = Infected birds
 S = Susceptible
 E = Asymptomatically Infected
 I = Symptomatically Infected
+H = Hospitalized Patients
+R = Recovered
 
+N_M = M_u + M_i
+N_B = B_u + B_i
+N_H = S + E + I
 =#
 
 
 function wnv(du, u, p, t)
     #Model parameters
+    PI_M, MU_M, q, c = p
+    #Current state
+    M_u, M_i, B_u, B_i, S, E, I, H, R = u
 
+    N_M = M_u + M_i
+    N_B = B_u + B_i
+    N_H = S + E + I
+    b_2 = 0.09*(1-c*q)
+
+    #Evaluate differential equations
+    du[1] = PI_M - (b_1*BETA_1*M_u*B_i)/N_B - MU_M*M_u #uninfected mosquitoes
+    du[2] = (b_1*BETA_1*M_u*B_i)/(N_B) - MU_M*M_i #infected mosquitoes
+
+    du[3] = PI_B - (b_1*BETA_2*M_i*B_u)/(N_B) - MU_B*B_u #uninfected birds
+    du[4] = (b_1*BETA_2*M_i*B_u)/(N_B) - MU_B*B_i - d_B*B_i #infected birds
+
+    du[5] = PI_H - (b_2*BETA_3*M_i*S)/(N_H) - MU_H*S #susceptible humans
+    du[6] = (b_2*BETA_3*M_i*S)/(N_H) - MU_H*E - ALPHA*E #asymptomatically infected humans
+    du[7] = ALPHA*E - MU_H*I - DELTA*I#symptomatically infected humans
+    du[8] = DELTA*I - TAU*H - MU_H*H - d_H*H #hospitalized humans
+    du[9] = TAU*H - MU_H*R #recovered humans
+    
