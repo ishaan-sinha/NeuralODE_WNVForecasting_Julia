@@ -1,25 +1,20 @@
-using Turing
-using DifferentialEquations
 
-# Load StatsPlots for visualizations and diagnostics.
-using StatsPlots
+import Dates
+using Optim
 
-using LinearAlgebra
+include(("CA_data/california.jl"))
 
-include(joinpath("CA_data", "california.jl"))
-
-
-
+#params
 #PI_M = variable
 PI_B = 1000
 PI_H = 30
 #MU_M = variable
 MU_B = 1/1000
 MU_H = 1/(70*365) #Reciprocal of length of human life in days
-#q = 0 --> 1
-#c = 0 --> 1 
+q = 0.1
+c = 0.1
 b_1 = 0.09 #adjusts peak
-#b_2 = 0.09(1-cq)
+b_2 = 0.09*(1-c*q)
 BETA_1 = 0.16 #adjusts peak and end value
 BETA_2 = 0.88 #adjusts peak
 BETA_3 = 0.88 #adjusts peak
@@ -47,9 +42,15 @@ N_H = S + E + I
 =#
 
 
+odedata = California.load()
+odedata = filter(:date => x -> Dates.year(x) == 2015, odedata)
+odedata = odedata[6:12, :]
+
+
 function wnv(du, u, p, t)
     #Model parameters
-    PI_M, MU_M, q, c = p
+    PI_M = p.
+    MU_M, q, c = p
     #Current state
     M_u, M_i, B_u, B_i, S, E, I, H, R = u
 
@@ -76,57 +77,4 @@ function wnv(du, u, p, t)
     return nothing
 end
 
-#Define initial-value problem
-u0 = [100000.0, 5000.0, 50000.0, 1000.0, 39000000.0, 0, 0, 0, 0]
-
-
-p = [22000, .20, 0, 0]
-
-tspan = (0.0, 180.0)
-prob = ODEProblem(wnv, u0, tspan, p)
-
-#Plot simulation
-#sol = solve(prob, Tsit5(); saveat=0.1)
-
-#Stiff solving
-sol = solve(prob, Rodas5(), saveat=1)
-
-
-#plot(sol)
-
-plot(sol[7,:], label="Symptomatically Infected Humans")
-
-odedata = California.load()[5:11, :]
-
-print(odedata)
-#plot!(odedata[!, :count], label="Observed Symptomatically Infected Humans")
-x_odedata = [30*i for i in 0:6]
-y_odedata = odedata[!, :count]
-plot!(scatter!(x_odedata, y_odedata, label="Observed Symptomatically Infected Humans"))
-
-
-@model function fitlv2(data::AbstractVector, prob)
-    #Prior distributions
-    σ ~ InverseGamma(2, 3)
-    PI_M ~ Normal(22000, 1000)
-    MU_M ~ Normal(0.20, 0.01)
-    q ~ Uniform(0, 1)
-    c ~ Uniform(0, 1)
-
-    #Simulate ODE but only save symptomatically infected
-    p = [PI_M, MU_M, q, c]
-    predicted = solve(prob, Rodas5(), p=p, saveat=1, saveidxs=7)
-
-    #Observations of symptomatically infected
-    data ~ MvNormal(predicted.u, σ^2 * I)
-    
-    return nothing
-end
-
-model2 = fitlv2(y_odedata, prob)
-
-#Sample from the posterior distribution
-posterior = sample(model2, NUTS(), 1000)
-
-#Plot the posterior distribution
-plot(posterior)
+function error

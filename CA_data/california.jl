@@ -10,7 +10,6 @@ function load()
     df = CSV.read(pwd() * "/CA_data/wnv_data.csv", DataFrame)
     df = df[:, [:Column1, :count]]
     df = rename(df, :Column1 => :date)
-    delete!(df, 1:48)
 end
 
 df = load()
