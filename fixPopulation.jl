@@ -82,8 +82,8 @@ end
 
 function error(x)
     #set parameters and initial conditions
-    u0 = [x[1], x[2], x[3], x[4], x[5], 0, 0, 0, 0]
-    p = [x[6], x[7], x[8], x[9]]
+    u0 = [x[1], x[2], x[3], x[4], 39000000.0, 0, 0, 0, 0]
+    p = [x[5], x[6], x[7], x[8]]
     tspan = (0.0, 181.0)
     prob = ODEProblem(wnv, u0, tspan, p)
     sol = solve(prob, Rodas5(), saveat=1)
@@ -97,8 +97,8 @@ x = [100000.0, 5000.0, 50000.0, 1000.0, 39000000.0, 22000, .20, 0, 0]
 
 #res = optimize(error, x, (), Optim.Options(iterations=1000, store_trace=true))
 
-lbounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-ubounds = [10000000.0, 10000000.0, 10000000.0, 10000000.0, 1000000000.0, 10000000.0, 10.0, 10.0, 10.0]
+lbounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+ubounds = [10000000.0, 10000000.0, 10000000.0, 10000000.0, 10000000.0, 10.0, 10.0, 10.0]
 
 #result = optimize(error, lbounds, ubounds, x)
 
@@ -107,13 +107,14 @@ result = optimize(error, lbounds, ubounds, x, Fminbox(LBFGS()); autodiff=:forwar
 #result = optimize(error, x, LBFGS(); autodiff=:forward)
 
 #evaluate results
-u0 = [result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4], result.minimizer[5], 0, 0, 0, 0]
-p = [result.minimizer[6], result.minimizer[7], result.minimizer[8], result.minimizer[9]]
+u0 = [result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4], 39000000.0, 0, 0, 0, 0]
+p = [result.minimizer[5], result.minimizer[6], result.minimizer[7], result.minimizer[8]]
 tspan = (0.0, 181.0)
 prob = ODEProblem(wnv, u0, tspan, p)
 sol = solve(prob, Rodas5(), saveat=1)
 plot(sol[6, :], label="Predicted")
-
+#=
 sol_pred = [sol[6, 1], sol[6, 31], sol[6, 61], sol[6, 91], sol[6, 121], sol[6, 151], sol[6, 181]]
 plot(sol_pred, label="Predicted")
 plot!(odedata[!, :count], label="Observed")
+=#

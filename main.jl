@@ -80,7 +80,7 @@ end
 u0 = [100000.0, 5000.0, 50000.0, 1000.0, 39000000.0, 0, 0, 0, 0]
 
 
-p = [22000, .20, 0, 0]
+p = [22000, .20, .2, .5]
 
 tspan = (0.0, 180.0)
 prob = ODEProblem(wnv, u0, tspan, p)
@@ -96,6 +96,7 @@ sol = solve(prob, Rodas5(), saveat=1)
 
 plot(sol[7,:], label="Symptomatically Infected Humans")
 
+#=
 odedata = California.load()[5:11, :]
 
 print(odedata)
@@ -130,3 +131,5 @@ posterior = sample(model2, NUTS(), 1000)
 
 #Plot the posterior distribution
 plot(posterior)
+
+=#
