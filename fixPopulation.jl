@@ -87,18 +87,19 @@ function error(x)
     tspan = (0.0, 181.0)
     prob = ODEProblem(wnv, u0, tspan, p)
     sol = solve(prob, Rodas5(), saveat=1)
-    sol_pred = [sol[6, 1], sol[6, 31], sol[6, 61], sol[6, 91], sol[6, 121], sol[6, 151], sol[6, 181]]
+    sol_pred = [sol[7, 1], sol[7, 31], sol[7, 61], sol[7, 91], sol[7, 121], sol[7, 151], sol[7, 181]]
     #plot(sol_pred, label="Predicted")
     #plot!(odedata[!, :count], label="Observed")
     return sum(abs.(sol_pred .- odedata[!, :count]))
 end
 
-x = [100000.0, 5000.0, 50000.0, 1000.0, 22000, .20, 0, 0]
+
+x = [100000.0, 5000.0, 50000.0, 1000.0, 2200, .20, 0, 0]
 
 #res = optimize(error, x, (), Optim.Options(iterations=1000, store_trace=true))
 
 lbounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-ubounds = [10000000.0, 10000000.0, 10000000.0, 10000000.0, 10000000.0, 10.0, 10.0, 10.0]
+ubounds = [10000000.0, 10000000.0, 10000000.0, 10000000.0, 10000.0, 10.0, 1.0, 1.0]
 
 #result = optimize(error, lbounds, ubounds, x)
 
@@ -112,8 +113,8 @@ p = [result.minimizer[5], result.minimizer[6], result.minimizer[7], result.minim
 tspan = (0.0, 181.0)
 prob = ODEProblem(wnv, u0, tspan, p)
 sol = solve(prob, Rodas5(), saveat=1)
-plot(sol[6, :], label="Predicted")
+plot(sol[7, :], label="Predicted")
 
-sol_pred = [sol[6, 1], sol[6, 31], sol[6, 61], sol[6, 91], sol[6, 121], sol[6, 151], sol[6, 181]]
+sol_pred = [sol[7, 1], sol[7, 31], sol[7, 61], sol[7, 91], sol[7, 121], sol[7, 151], sol[7, 181]]
 plot(sol_pred, label="Predicted")
 plot!(odedata[!, :count], label="Observed")

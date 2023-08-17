@@ -87,23 +87,24 @@ function error(x)
     t_end = x[9]
     tspan = (0.0, t_end)
     prob = ODEProblem(wnv, u0, tspan, p)
-    sol = solve(prob, Rodas5(), saveat=1)
-    sol_pred = [sol[6,1], sol[6, trunc(Int,1/6 * t_end)], sol[6, trunc(Int, 2/6*t_end)], sol[6, trunc(Int, 3/6*t_end)], sol[6, trunc(Int, 4/6*t_end)], sol[6, trunc(Int, 5/6*t_end)], sol[6, trunc(Int, t_end)]]
+    sol = solve(prob, Rodas5(), saveat=1, dt=1e-6)
+    sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
     #plot(sol_pred, label="Predicted")
     #plot!(odedata[!, :count], label="Observed")
     return sum(abs.(sol_pred .- odedata[!, :count]))
 end
 
-x = [100000.0, 5000.0, 50000.0, 1000.0, 22000, .20, 0, 0, 181]
+x = [100000.0, 5000.0, 50000.0, 1000.0, 100, .20, 0, 0, 400]
 
 #res = optimize(error, x, (), Optim.Options(iterations=1000, store_trace=true))
 
-lbounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-ubounds = [1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 10.0, 1.0, 1.0, 1000]
+lbounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 100]
+ubounds = [500000.0, 10000.0, 500000.0, 10000.0, 1000.0, 1.0, 1.0, 1.0, 1000]
 
-#result = optimize(error, lbounds, ubounds, x)
+result = optimize(error, lbounds, ubounds, x)
 
-result = optimize(error, lbounds, ubounds, x, Fminbox(LBFGS()); autodiff=:forward)
+#result = optimize(error, lbounds, ubounds, x, Fminbox(LBFGS()); autodiff=:forward)
+#started at 8:13pm
 
 #result = optimize(error, x, LBFGS(); autodiff=:forward)
 
@@ -114,8 +115,8 @@ t_end = result.minimizer[9]
 tspan = (0.0, t_end)
 prob = ODEProblem(wnv, u0, tspan, p)
 sol = solve(prob, Rodas5(), saveat=1)
-plot(sol[6, :], label="Predicted")
+plot(sol[7, :], label="Predicted")
 
-sol_pred = [sol[6,1], sol[6, trunc(Int,1/6 * t_end)], sol[6, trunc(Int, 2/6*t_end)], sol[6, trunc(Int, 3/6*t_end)], sol[6, trunc(Int, 4/6*t_end)], sol[6, trunc(Int, 5/6*t_end)], sol[6, trunc(Int, t_end)]]
+sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
 plot(sol_pred, label="Predicted")
 plot!(odedata[!, :count], label="Observed")
