@@ -45,9 +45,9 @@ N_B = B_u + B_i
 N_H = S + E + I
 =#
 
-
+year = 2014
 odedata = California.load()
-odedata = filter(:date => x -> Dates.year(x) == 2015, odedata)
+odedata = filter(:date => x -> Dates.year(x) == year, odedata)
 odedata = odedata[6:12, :]
 
 
@@ -87,7 +87,7 @@ function error(x)
     t_end = x[9]
     tspan = (0.0, t_end)
     prob = ODEProblem(wnv, u0, tspan, p)
-    sol = solve(prob, Rodas5(), saveat=1, dt=1e-6)
+    sol = solve(prob, Rodas5(), saveat=1, dt=1e-12)
     sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
     #plot(sol_pred, label="Predicted")
     #plot!(odedata[!, :count], label="Observed")
@@ -101,12 +101,13 @@ x = [100000.0, 5000.0, 50000.0, 1000.0, 100, .20, 0, 0, 400]
 lbounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 100]
 ubounds = [500000.0, 10000.0, 500000.0, 10000.0, 1000.0, 1.0, 1.0, 1.0, 1000]
 
-result = optimize(error, lbounds, ubounds, x)
+#result = optimize(error, lbounds, ubounds, x)
+#result = optimize(error, lbounds, ubounds, x, Fminbox(GradientDescent()))
 
-#result = optimize(error, lbounds, ubounds, x, Fminbox(LBFGS()); autodiff=:forward)
-#started at 8:13pm
+result = optimize(error, lbounds, ubounds, x, Fminbox(LBFGS()), Optim.Options(time_limit=120.0, store_trace=true))
 
-#result = optimize(error, x, LBFGS(); autodiff=:forward)
+
+#started at 7:43pm
 
 #evaluate results
 u0 = [result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4], 39000000, 0, 0, 0, 0]
@@ -120,3 +121,4 @@ plot(sol[7, :], label="Predicted")
 sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
 plot(sol_pred, label="Predicted")
 plot!(odedata[!, :count], label="Observed")
+title!("WNV Cases for " + string(year))
