@@ -6,7 +6,8 @@ using StatsPlots
 using DataFrames
 using CSV
 
-include(("CA_data/california.jl"))
+include(("state_data/state.jl"))
+
 
 #params
 #PI_M = variable
@@ -45,87 +46,88 @@ N_B = B_u + B_i
 N_H = S + E + I
 =#
 
-df = DataFrame(A=Float32[], B=Float32[], C=Float32[], D=Float32[])
+
+for state in State.listOfStates()
+    print(state)
+    df = DataFrame(A=Float32[], B=Float32[], C=Float32[], D=Float32[])
+
+    for year in range(2000, 2022)
+
+        odedata = State.load(state)
+        odedata = filter(:date => x -> Dates.year(x) == year, odedata)
+        odedata = odedata[6:12, :]
+
+        population = State.getPopulation(state, year)
 
 
-for year in range(2000, 2022)
+        function wnv(du, u, p, t)
+            #Model parameters
+            PI_M = p[1]
+            #Current state
+            M_u, M_i, B_u, B_i, S, E, I, H, R = u
 
-    odedata = California.load()
-    odedata = filter(:date => x -> Dates.year(x) == year, odedata)
-    odedata = odedata[6:12, :]
+            N_M = M_u + M_i
+            N_B = B_u + B_i
+            N_H = S + E + I
+            b_2 = 0.09*(1-c*q)
 
+            #Evaluate differential equations
+            du[1] = PI_M - (b_1*BETA_1*M_u*B_i)/N_B - MU_M*M_u #uninfected mosquitoes
+            du[2] = (b_1*BETA_1*M_u*B_i)/(N_B) - MU_M*M_i #infected mosquitoes
 
-    function wnv(du, u, p, t)
-        #Model parameters
-        PI_M = p[1]
-        #Current state
-        M_u, M_i, B_u, B_i, S, E, I, H, R = u
+            du[3] = PI_B - (b_1*BETA_2*M_i*B_u)/(N_B) - MU_B*B_u #uninfected birds
+            du[4] = (b_1*BETA_2*M_i*B_u)/(N_B) - MU_B*B_i - d_B*B_i #infected birds
 
-        N_M = M_u + M_i
-        N_B = B_u + B_i
-        N_H = S + E + I
-        b_2 = 0.09*(1-c*q)
+            du[5] = PI_H - (b_2*BETA_3*M_i*S)/(N_H) - MU_H*S #susceptible humans
+            du[6] = (b_2*BETA_3*M_i*S)/(N_H) - MU_H*E - ALPHA*E #asymptomatically infected humans
+            
+            du[7] = ALPHA*E - MU_H*I - DELTA*I#symptomatically infected humans
+            
+            du[8] = DELTA*I - TAU*H - MU_H*H - d_H*H #hospitalized humans
+            du[9] = TAU*H - MU_H*R #recovered humans
 
-        #Evaluate differential equations
-        du[1] = PI_M - (b_1*BETA_1*M_u*B_i)/N_B - MU_M*M_u #uninfected mosquitoes
-        du[2] = (b_1*BETA_1*M_u*B_i)/(N_B) - MU_M*M_i #infected mosquitoes
+            return nothing
+        end
 
-        du[3] = PI_B - (b_1*BETA_2*M_i*B_u)/(N_B) - MU_B*B_u #uninfected birds
-        du[4] = (b_1*BETA_2*M_i*B_u)/(N_B) - MU_B*B_i - d_B*B_i #infected birds
+        function diffEqError(x)
+            #set parameters and initial conditions
+            u0 = [499*x[1], x[1], x[2], x[3], population, 0, 0, 0, 0]
+            p = [x[4]]
+            t_end = 181
+            tspan = (0.0, t_end)
+            prob = ODEProblem(wnv, u0, tspan, p)
+            sol = solve(prob, Rodas5(), saveat=1, dt=1e-4)
+            sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
+            #plot(sol_pred, label="Predicted")
+            #plot!(odedata[!, :count], label="Observed")
+            return sum(abs.(sol_pred .- odedata[!, :count]))
+        end
 
-        du[5] = PI_H - (b_2*BETA_3*M_i*S)/(N_H) - MU_H*S #susceptible humans
-        du[6] = (b_2*BETA_3*M_i*S)/(N_H) - MU_H*E - ALPHA*E #asymptomatically infected humans
-        
-        du[7] = ALPHA*E - MU_H*I - DELTA*I#symptomatically infected humans
-        
-        du[8] = DELTA*I - TAU*H - MU_H*H - d_H*H #hospitalized humans
-        du[9] = TAU*H - MU_H*R #recovered humans
+        x = [5000.0, 50000.0, 1000.0, 1200]
 
-        return nothing
-    end
+        #res = optimize(error, x, (), Optim.Options(iterations=1000, store_trace=true))
 
-    function diffEqError(x)
-        #set parameters and initial conditions
-        u0 = [499*x[1], x[1], x[2], x[3], 39000000, 0, 0, 0, 0]
-        p = [x[4]]
+        lbounds = [0.0, 0.0, 0.0, 0.0]
+        ubounds = [10000.0, 1000000.0, 20000.0, 2000.0]
+
+        #result = optimize(diffEqError, lbounds, ubounds, x)
+        #result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(GradientDescent()))
+
+        result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(LBFGS()), Optim.Options(time_limit=60.0); autodiff=:forward)
+
+        #evaluate results
+
+        u0 = [499*result.minimizer[1], result.minimizer[1], result.minimizer[2], result.minimizer[3], population, 0, 0, 0, 0]
+        p = [result.minimizer[4]]
         t_end = 181
         tspan = (0.0, t_end)
         prob = ODEProblem(wnv, u0, tspan, p)
         sol = solve(prob, Rodas5(), saveat=1, dt=1e-4)
+        plot(sol[7, :], label="Predicted")
+
         sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
-        #plot(sol_pred, label="Predicted")
-        #plot!(odedata[!, :count], label="Observed")
-        return sum(abs.(sol_pred .- odedata[!, :count]))
+        push!(df, (result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4]))
     end
 
-    x = [5000.0, 50000.0, 1000.0, 1200]
-
-    #res = optimize(error, x, (), Optim.Options(iterations=1000, store_trace=true))
-
-    lbounds = [0.0, 0.0, 0.0, 0.0]
-    ubounds = [10000.0, 1000000.0, 20000.0, 2000.0]
-
-    #result = optimize(diffEqError, lbounds, ubounds, x)
-    #result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(GradientDescent()))
-
-    result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(LBFGS()), Optim.Options(time_limit=60.0); autodiff=:forward)
-
-    #evaluate results
-
-    u0 = [499*result.minimizer[1], result.minimizer[1], result.minimizer[2], result.minimizer[3], 39000000, 0, 0, 0, 0]
-    p = [result.minimizer[4]]
-    t_end = 181
-    tspan = (0.0, t_end)
-    prob = ODEProblem(wnv, u0, tspan, p)
-    sol = solve(prob, Rodas5(), saveat=1, dt=1e-4)
-    plot(sol[7, :], label="Predicted")
-
-    sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
-    plot(sol_pred, label="Predicted")
-    plot!(odedata[!, :count], label="Observed")
-    title!("WNV Cases for " * string(year) * " CA")
-    savefig("4variables_CA_" * string(year)*".png")
-    push!(df, (result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4]))
+    CSV.write("4variables_"*state*".csv", df)
 end
-
-CSV.write("4variables_CA.csv", df)
