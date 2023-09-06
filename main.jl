@@ -13,11 +13,11 @@ include(joinpath("CA_data", "california.jl"))
 #PI_M = variable
 PI_B = 1000
 PI_H = 30
-#MU_M = variable
+MU_M = 0.05
 MU_B = 1/1000
 MU_H = 1/(70*365) #Reciprocal of length of human life in days
-#q = 0 --> 1
-#c = 0 --> 1 
+q = 0.3
+c = 0.8
 b_1 = 0.09 #adjusts peak
 #b_2 = 0.09(1-cq)
 BETA_1 = 0.16 #adjusts peak and end value
@@ -49,7 +49,7 @@ N_H = S + E + I
 
 function wnv(du, u, p, t)
     #Model parameters
-    PI_M, MU_M, q, c = p
+    PI_M = p
     #Current state
     M_u, M_i, B_u, B_i, S, E, I, H, R = u
 
@@ -77,7 +77,7 @@ function wnv(du, u, p, t)
 end
 
 #Define initial-value problem
-u0 = [5000000.0, 5000.0, 500000.0, 5000.0, 39000000.0, 0, 0, 0, 0]
+u0 = [5000000.0, 5000.0, 500000.0, 5000.0, 39000000.0, 200, 20, 0, 0]
 
 
 p = [2200, .20, .2, .2]

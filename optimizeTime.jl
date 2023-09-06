@@ -80,7 +80,7 @@ function wnv(du, u, p, t)
     return nothing
 end
 
-function error(x)
+function wnverror(x)
     #set parameters and initial conditions
     u0 = [x[1], x[2], x[3], x[4], x[5], 0, 0, 0, 0]
     p = [x[6], x[7], x[8], x[9]]
@@ -103,7 +103,7 @@ ubounds = [10000000.0, 10000000.0, 10000000.0, 10000000.0, 1000000000.0, 1000000
 
 #result = optimize(error, lbounds, ubounds, x)
 
-result = optimize(error, lbounds, ubounds, x, Fminbox(LBFGS()); autodiff=:forward)
+result = optimize(wnverror, lbounds, ubounds, x, Fminbox(LBFGS()); autodiff=:forward)
 
 #result = optimize(error, x, LBFGS(); autodiff=:forward)
 
