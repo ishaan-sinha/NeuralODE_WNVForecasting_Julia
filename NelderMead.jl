@@ -118,7 +118,8 @@ for state in ["CA"]
         #result = optimize(diffEqError, lbounds, ubounds, x)
         #result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(GradientDescent()))
 
-        result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(LBFGS()), Optim.Options(time_limit=60.0); autodiff=:forward)
+        #result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(LBFGS()), Optim.Options(time_limit=60.0); autodiff=:forward)
+        result = optimize(diffEqError, x, NelderMead())
 
         #evaluate results
 
@@ -134,5 +135,5 @@ for state in ["CA"]
         push!(df, (result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4]))
     end
 
-    CSV.write("[EXPERIMENT]4variables_"*state*".csv", df)
+    CSV.write("NM_4variables_"*state*".csv", df)
 end

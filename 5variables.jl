@@ -54,7 +54,7 @@ for state in State.listOfStates()
 =#
 for state in ["CA"]
     print(state)
-    df = DataFrame(A=Float32[], B=Float32[], C=Float32[], D=Float32[])
+    df = DataFrame(A=Float32[], B=Float32[], C=Float32[], D=Float32[], E=Float32[])
 
     for year in range(2000 , 2022)
 
@@ -96,8 +96,8 @@ for state in ["CA"]
 
         function diffEqError(x)
             #set parameters and initial conditions
-            u0 = [499*x[1], x[1], x[2], x[3], population, 0, 0, 0, 0]
-            p = [x[4]]
+            u0 = [x[1], x[2], x[3], x[4], population, 0, 0, 0, 0]
+            p = [x[5]]
             t_end = 181
             tspan = (0.0, t_end)
             prob = ODEProblem(wnv, u0, tspan, p)
@@ -108,12 +108,12 @@ for state in ["CA"]
             return sum(abs.(sol_pred .- odedata[!, :count]))
         end
 
-        x = [5000.0, 50000.0, 1000.0, 1200]
+        x = [50000, 5000.0, 50000.0, 1000.0, 1200]
 
         #res = optimize(error, x, (), Optim.Options(iterations=1000, store_trace=true))
 
-        lbounds = [0.0, 0.0, 0.0, 0.0]
-        ubounds = [10000.0, 1000000.0, 20000.0, 20000.0]
+        lbounds = [0.0, 0.0, 0.0, 0.0, 0.0]
+        ubounds = [1000000.0, 10000.0, 1000000.0, 20000.0, 20000.0]
 
         #result = optimize(diffEqError, lbounds, ubounds, x)
         #result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(GradientDescent()))
@@ -122,8 +122,8 @@ for state in ["CA"]
 
         #evaluate results
 
-        u0 = [499*result.minimizer[1], result.minimizer[1], result.minimizer[2], result.minimizer[3], population, 0, 0, 0, 0]
-        p = [result.minimizer[4]]
+        u0 = [result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4], population, 0, 0, 0, 0]
+        p = [result.minimizer[5]]
         t_end = 181
         tspan = (0.0, t_end)
         prob = ODEProblem(wnv, u0, tspan, p)
@@ -131,8 +131,8 @@ for state in ["CA"]
         plot(sol[7, :], label="Predicted")
 
         sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
-        push!(df, (result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4]))
+        push!(df, (result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4], result.minimizer[5]))
     end
 
-    CSV.write("[EXPERIMENT]4variables_"*state*".csv", df)
+    CSV.write("5variables_"*state*".csv", df)
 end

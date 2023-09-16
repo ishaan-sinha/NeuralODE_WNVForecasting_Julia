@@ -1,22 +1,23 @@
 
-import Dates
+import Dates   
 using Optim
 using DifferentialEquations
 using StatsPlots
+using DataFrames
+using CSV
 
+include(("state_data/state.jl"))
 
-
-include(("CA_data/california.jl"))
 
 #params
 #PI_M = variable
 PI_B = 1000
 PI_H = 30
-#MU_M = variable
+MU_M = 1/42
 MU_B = 1/1000
 MU_H = 1/(70*365) #Reciprocal of length of human life in days
-q = 0.1
-c = 0.1
+q = 0.33
+c = 0.9
 b_1 = 0.09 #adjusts peak
 b_2 = 0.09*(1-c*q)
 BETA_1 = 0.16 #adjusts peak and end value
@@ -45,15 +46,25 @@ N_B = B_u + B_i
 N_H = S + E + I
 =#
 
+#=
+for state in State.listOfStates()
+    if state[begin] < 'N' or 
+        continue
+    end
+=#
 
-odedata = California.load()
-odedata = filter(:date => x -> Dates.year(x) == 2015, odedata)
+state = "CA"
+year = 2014
+
+odedata = State.load(state)
+odedata = filter(:date => x -> Dates.year(x) == year, odedata)
 odedata = odedata[6:12, :]
 
+population = State.getPopulation(state, year)
 
 function wnv(du, u, p, t)
     #Model parameters
-    PI_M, MU_M, q, c = p
+    PI_M = p[1]
     #Current state
     M_u, M_i, B_u, B_i, S, E, I, H, R = u
 
@@ -80,41 +91,53 @@ function wnv(du, u, p, t)
     return nothing
 end
 
-function error(x)
+function diffEqError(x)
     #set parameters and initial conditions
-    u0 = [x[1], x[2], x[3], x[4], 39000000.0, 0, 0, 0, 0]
-    p = [x[5], x[6], x[7], x[8]]
-    tspan = (0.0, 181.0)
+    u0 = [499*x[1], x[1], x[2], x[3], population, 0, 0, 0, 0]
+    p = [x[4]]
+    t_end = 181
+    tspan = (0.0, t_end)
     prob = ODEProblem(wnv, u0, tspan, p)
-    sol = solve(prob, Rodas5(), saveat=1)
-    sol_pred = [sol[7, 1], sol[7, 31], sol[7, 61], sol[7, 91], sol[7, 121], sol[7, 151], sol[7, 181]]
+    sol = solve(prob, Rodas5(), saveat=1, dt=1e-6)
+    sol_pred = [sol[7,1], sol[7, trunc(Int,1/6 * t_end)], sol[7, trunc(Int, 2/6*t_end)], sol[7, trunc(Int, 3/6*t_end)], sol[7, trunc(Int, 4/6*t_end)], sol[7, trunc(Int, 5/6*t_end)], sol[7, trunc(Int, t_end)]]
     #plot(sol_pred, label="Predicted")
     #plot!(odedata[!, :count], label="Observed")
     return sum(abs.(sol_pred .- odedata[!, :count]))
 end
 
-
-x = [100000.0, 5000.0, 50000.0, 1000.0, 2200, .20, 0, 0]
+x = [5000.0, 50000.0, 1000.0, 1200]
 
 #res = optimize(error, x, (), Optim.Options(iterations=1000, store_trace=true))
 
-lbounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-ubounds = [10000000.0, 10000000.0, 10000000.0, 10000000.0, 10000.0, 10.0, 1.0, 1.0]
+lbounds = [0.0, 0.0, 0.0, 0.0]
+ubounds = [10000.0, 1000000.0, 20000.0, 20000.0]
 
-#result = optimize(error, lbounds, ubounds, x)
+#result = optimize(diffEqError, lbounds, ubounds, x)
+#result = optimize(diffEqError, lbounds, ubounds, x, Fminbox(GradientDescent()))
 
-result = optimize(error, lbounds, ubounds, x, Fminbox(LBFGS()); autodiff=:forward)
+#result = optimize(diffEqError, x, SimulatedAnnealing(), Optim.Options(iterations=10000))
 
-#result = optimize(error, x, LBFGS(); autodiff=:forward)
+#result = optimize(diffEqError, x, ParticleSwarm(;lower=lbounds, upper=ubounds, n_particles=15))
+#result = optimize(diffEqError, x, ParticleSwarm(;lower=[], upper=[], n_particles=15))
+result = optimize(diffEqError, x, NelderMead())
+
 
 #evaluate results
-u0 = [result.minimizer[1], result.minimizer[2], result.minimizer[3], result.minimizer[4], 39000000.0, 0, 0, 0, 0]
-p = [result.minimizer[5], result.minimizer[6], result.minimizer[7], result.minimizer[8]]
-tspan = (0.0, 181.0)
+
+u0 = [499*result.minimizer[1], result.minimizer[1], result.minimizer[2], result.minimizer[3], population, 0, 0, 0, 0]
+p = [result.minimizer[4]]
+t_end = 181
+tspan = (0.0, t_end)
 prob = ODEProblem(wnv, u0, tspan, p)
-sol = solve(prob, Rodas5(), saveat=1)
+sol = solve(prob, Rodas5(), saveat=1, dt=1e-4)
 plot(sol[7, :], label="Predicted")
 
 sol_pred = [sol[7, 1], sol[7, 31], sol[7, 61], sol[7, 91], sol[7, 121], sol[7, 151], sol[7, 181]]
 plot(sol_pred, label="Predicted")
-plot!(odedata[!, :count], label="Observed")
+
+plot!(odedata[!, :count], label="Observed", show=true)
+
+
+savefig("NelderMeadCA"*string(year)*".png")
+print(result.minimizer)
+
